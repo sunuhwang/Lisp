@@ -4,19 +4,19 @@ class LispObj:
         self.Value = Value
     def eval(self,env):
         if type(self.Value) != list:
-            if type(self.Value) == str and  not self.Value.startswith('"') and not self.Value.endswith('"'):
-                return env[self.Value]
-            elif type(self.Value) == str:
+             if self.Value.startswith('"') and self.Value.endswith('"'):
                 return self.Value[1:-1]
-            elif self.Value == '#t':
+             elif self.Value == '#t':
                 return True
-            elif self.Value == '#f':
+             elif self.Value == '#f':
                 return False
-            else:
+             elif type(self.Value) == str and  not self.Value.startswith('"') and not self.Value.endswith('"') and not self.Value[0].isdigit():
+                return env[self.Value]
+             else:
                 if '/' in self.Value:
                     return Fraction(self.Value)
                 else:
-                    return self.Value.replace('#','0') if self.Value[2] == '#' else float(self.Value)
+                    return self.Value.replace('#','0') if self.Value[2:3] == '#' else float(self.Value)
         else:
             match self.Value[0]:
                 case 'if':
@@ -38,14 +38,15 @@ class LispObj:
                     else:
                         env[self.Value[1]] = self.Value[2]
                 case _:
-                    local_env = {}
-                    for args in self.Value[1:]:
-                        for functions in env.keys():
-                            if functions[0] == self.Value[0]:
-                                for name, val in zip(functions[1:], args):
-                                    local_env[name] = LispObj(val).eval(env)
-                                if callable(env[functions[0]]):
-                                    return env[functions](*local_env.values())
-                                else:
-                                     return LispObj(env[functions]).eval(local_env)
-                    raise NameError("Unknown function")
+                    args = [x.eval(env) for x in self.Value[1:]]
+                    fn = self.Value[0]
+                    if isinstance(fn,str):
+                        pass
+                    else:
+                        fn = fn.eval(env)
+                    if callable(fn):
+                        return fn(*args)
+                    else:
+                        local_env = env.copy()
+                        body = env[fn][1]
+                        return LispObj(body).eval(local_env)
