@@ -18,7 +18,7 @@ class LispObj:
                 else:
                     return self.Value.replace('#','0') if self.Value[2:3] == '#' else float(self.Value)
         else:
-            match self.Value[0]:
+            match self.Value[0].Value:
                 case 'if':
                     _, test, conseq, alt = self.Value
                     exp = conseq if LispObj(test).eval(env) else alt
@@ -33,20 +33,20 @@ class LispObj:
                 case 'quote':
                     return self.Value[1]
                 case 'define':
-                    if type(self.Value[1]) == list:
-                        env[self.Value[1]] = [self.Value[1][1:],self.Value[2]]
+                    if type(self.Value[1].Value) == list:
+                        env[self.Value[1].Value[0].Value] = [self.Value[1].Value[1:],self.Value[2]]
                     else:
-                        env[self.Value[1]] = self.Value[2]
+                        env[self.Value[1].Value] = self.Value[2].eval(env)
                 case _:
-                    args = [x.eval(env) for x in self.Value[1:]]
-                    fn = self.Value[0]
-                    if isinstance(fn,str):
-                        pass
-                    else:
-                        fn = fn.eval(env)
+                    args = [i.eval(env) for i in self.Value[1:]]
+                    fn = self.Value[0].eval(env)
                     if callable(fn):
                         return fn(*args)
                     else:
                         local_env = env.copy()
-                        body = env[fn][1]
-                        return LispObj(body).eval(local_env)
+                        body = fn[1]
+                        params = fn[0]
+                        for p, a in zip(params, args):
+                            p_name = p.Value if hasattr(p, 'Value') else p
+                            local_env[p_name] = a
+                        return (body if type(body) == LispObj else LispObj(body)).eval(local_env)
