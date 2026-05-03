@@ -34,7 +34,7 @@ class LispObj:
                     return self.Value[1]
                 case 'define':
                     if type(self.Value[1]) == list:
-                        env[tuple(self.Value[1])]  = self.Value[2]
+                        env[self.Value[1]] = [self.Value[1][1:],self.Value[2]]
                     else:
                         env[self.Value[1]] = self.Value[2]
                 case _:
